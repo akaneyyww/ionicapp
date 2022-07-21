@@ -8,11 +8,33 @@ import { Storage } from '@capacitor/storage';
 import { Capacitor } from '@capacitor/core';
 //
 
+//4.1defining a constant variable that will act as the key for the store
+const PHOTO_STORAGE = 'photos';
 
 //1.1usePhotoGallery hook exposes a method called takePhoto, which in turn calls into Capacitor's getPhoto method
 export function usePhotoGallery() {
 
     const [photos, setPhotos] = useState<UserPhoto[]>([]); //2.2define a state variable to store the array of each photo captured with the Camera
+
+
+    useEffect(() => {
+        const loadSaved = async () => {
+          const { value } = await Storage.get({ key: PHOTO_STORAGE });
+          const photosInStorage = (value ? JSON.parse(value) : []) as UserPhoto[];
+      
+          for (let photo of photosInStorage) {
+            const file = await Filesystem.readFile({
+              path: photo.filepath,
+              directory: Directory.Data,
+            });
+            // Web platform only: Load the photo as base64 data
+            photo.webviewPath = `data:image/jpeg;base64,${file.data}`;
+          }
+          setPhotos(photosInStorage);
+        };
+        loadSaved();
+      }, []);
+
 
     const takePhoto = async () => {
         const photo = await Camera.getPhoto({
@@ -47,6 +69,11 @@ export function usePhotoGallery() {
         const savedFileImage = await savePicture(photo, fileName);
         const newPhotos = [savedFileImage, ...photos];
         setPhotos(newPhotos);
+
+        //4.2 At the end of the takePhoto function, add a call to Storage.set() to save the Photos array.
+        // By adding it here, the Photos array is stored each time a new photo is taken. 
+        // This way, it doesn’t matter when the app user closes or switches to a different app - all photo data is saved.
+        Storage.set({ key: PHOTO_STORAGE, value: JSON.stringify(newPhotos) });
     };
     
 
