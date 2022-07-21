@@ -97,12 +97,35 @@ export function usePhotoGallery() {
         // This way, it doesn’t matter when the app user closes or switches to a different app - all photo data is saved.
         Storage.set({ key: PHOTO_STORAGE, value: JSON.stringify(newPhotos) });
     };
+
+
+    const deletePhoto = async (photo: UserPhoto) => {
+        // Remove this photo from the Photos reference data array
+        const newPhotos = photos.filter((p) => p.filepath !== photo.filepath);
+      
+        // Update photos array cache by overwriting the existing photo array
+        Storage.set({ key: PHOTO_STORAGE, value: JSON.stringify(newPhotos) });
+      
+        // delete photo file from filesystem
+        const filename = photo.filepath.substr(photo.filepath.lastIndexOf('/') + 1);
+        await Filesystem.deleteFile({
+          path: filename,
+          directory: Directory.Data,
+        });
+        setPhotos(newPhotos);
+      };
+
     
 
+    // return {
+    //     photos,//2.4
+    //     takePhoto,
+    // };
     return {
-        photos,//2.4
+        deletePhoto,
+        photos,
         takePhoto,
-    };
+      };
 }
 
 //2.1create a new type to define our Photo, which will hold specific metadata
